@@ -4,11 +4,13 @@ from PyQt5.QtCore import QObject
 
 from deepdiff import DeepDiff
 
+from dictdiffer import diff
+
 app = QApplication([])
 window = QWidget()
 vbox = QVBoxLayout()
 
-def render(old, new):
+def render0(old, new):
 
     diff = DeepDiff(old, new, view='tree',
                     ignore_order=False,
@@ -17,7 +19,6 @@ def render(old, new):
     if 'iterable_item_added' in diff:
         for a in diff['iterable_item_added']:
             at = a.up.t2_child_rel.param
-
             item = a.up.t2_child_rel.child
 
             if item['element'] == 'label':
@@ -41,6 +42,34 @@ def render(old, new):
 
     return old
 
+elements = {}
+
+def render(old, new):
+    diffs = diff(old, new)
+
+    for d in diffs:
+        (action, path, item) = d
+        current_element = elements
+        if action == 'add':
+            for e in path:
+                if path not in current_element:
+                    current_element[path] = {}
+                current_element = current_element[path]
+
+            #(at, content) = item
+            for (at, content) in item:
+
+                print("at {} adding {} to {}".format(at, content, current_element))
+                # update current representation of the layout
+                current_element[at] = item
+
+
+        print(d)
+
+    print("-----")
+
+    return new
+
 current_layout = []
 
 new_layout = [{'element': 'label',
@@ -59,7 +88,7 @@ current_layout = render(current_layout, new_layout)
 new_layout = [{'element': 'label',
                'text': 'hello world'},
               {'element': 'label',
-               'text': 'my name is joshua'},
+               'text': 'my name is josh'},
               {'element': 'label',
                'text': 'i am not feeling so great'}]
 
@@ -76,9 +105,9 @@ current_layout = render(current_layout, new_layout)
 
 
 
-window.setLayout(vbox)
-window.show()
-app.exec_()
+#window.setLayout(vbox)
+#window.show()
+#app.exec_()
 
 
 # >>> t1 = {'name': 'josh', 'age': 43, 'place': "san francisco"}

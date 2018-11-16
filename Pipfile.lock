@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6cf71cfe374b7c9dfe2e83d836d622a434ed2f76d7a6149269cb15c4870cb192"
+            "sha256": "6a4afabf4bbf0fd2eaf491f5191a16541a422c4124e2e8e31986219c7b788a27"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -20,6 +20,14 @@
             "editable": true,
             "git": "https://github.com/joshuathayer/deepdiff.git",
             "ref": "56034a42f0e9bdecb961ed5c2914895578ca8ff0"
+        },
+        "dictdiffer": {
+            "hashes": [
+                "sha256:6de9370f3c0c7fb5cc8bdc9e10dbca6ff05c39d8e2e58a67eb98d32677a224ca",
+                "sha256:e4f94167d037f70c11c6a8e7e289d81c8c7117bc02132cd82a0ab8fcba43cc08"
+            ],
+            "index": "pypi",
+            "version": "==0.7.1"
         },
         "jsonpickle": {
             "hashes": [

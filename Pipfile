@@ -17,4 +17,5 @@ flake8 = "*"
 "pyqt5" = "==5.11.3" 
 
 [packages]
+dictdiffer = "*"
 deepdiff = {editable = true, git = "https://github.com/joshuathayer/deepdiff.git", ref = "master"}
