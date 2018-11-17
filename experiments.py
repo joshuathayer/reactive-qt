@@ -6,6 +6,8 @@ from deepdiff import DeepDiff
 
 from dictdiffer import diff
 
+import uuid
+
 app = QApplication([])
 window = QWidget()
 vbox = QVBoxLayout()
@@ -43,6 +45,7 @@ def render0(old, new):
     return old
 
 elements = {}
+components = {}
 
 def render(old, new):
     diffs = diff(old, new)
@@ -51,18 +54,19 @@ def render(old, new):
         (action, path, item) = d
         current_element = elements
         if action == 'add':
+
+            # point into `elements` at the right place...
             for e in path:
                 if path not in current_element:
                     current_element[path] = {}
                 current_element = current_element[path]
 
-            #(at, content) = item
+            # add the element at the right place...
             for (at, content) in item:
 
-                print("at {} adding {} to {}".format(at, content, current_element))
                 # update current representation of the layout
+                current_element['id'] = str(uuid.uuid4())
                 current_element[at] = item
-
 
         print(d)
 
@@ -104,6 +108,42 @@ new_layout = [{'element': 'label',
 current_layout = render(current_layout, new_layout)
 
 
+# i don't think it's quite that easy. consider...
+
+layout0  = [{'element': 'label',
+             'text': 'hello',
+             'id': 1234}]
+
+layout1  = [{'element': 'button',
+             'text': 'submit',
+             'id': 5678},
+            {'element': 'label',
+             'text': 'hello',
+             'id': 1234}]
+
+# we clearly just added a new element, 5678. but
+current_layout = render(layout0, layout1)
+# shows us _changing_ every attribute of the first element of the
+# list, then adding an new element, 1234. clearly not what we're
+# after.
+
+# will we have to make our own algorithm? it might not be so bad,
+# especially since we have domain knownledge about our structure
+
+layout1  = [{'element': 'button',
+             'text': 'submit',
+             'id': 5678},
+            {'element': 'label',
+             'text': 'hello',
+             'id': 1234},
+            {'element': 'vbox',
+             'id': 9876,
+             'contains': [
+                 {'element': 'label',
+                  'text': 'inner',
+                  'id': 8765
+                 }
+             ]}]
 
 #window.setLayout(vbox)
 #window.show()
