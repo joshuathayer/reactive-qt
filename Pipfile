@@ -7,15 +7,15 @@ verify_ssl = true
 python_version = "3.5"
 
 [dev-packages]
-deepdiff = "*"
 pytest = "*"
 pip-tools = "*"
 coverage = "*"
 pytest-cov = "*"
 pytest-random-order = "*"
 flake8 = "*"
-"pyqt5" = "==5.11.3" 
 
 [packages]
+toolz = "*"
 dictdiffer = "*"
 deepdiff = {editable = true, git = "https://github.com/joshuathayer/deepdiff.git", ref = "master"}
+"pyqt5" = "==5.11.3" 

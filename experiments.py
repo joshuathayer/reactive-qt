@@ -8,6 +8,10 @@ from dictdiffer import diff
 
 import uuid
 
+from toolz.dicttoolz import dissoc, merge
+from toolz.itertoolz import get
+from functools import reduce, partial
+
 app = QApplication([])
 window = QWidget()
 vbox = QVBoxLayout()
@@ -130,12 +134,24 @@ current_layout = render(layout0, layout1)
 # will we have to make our own algorithm? it might not be so bad,
 # especially since we have domain knownledge about our structure
 
-layout1  = [{'element': 'button',
-             'text': 'submit',
+layout0  = [{'element': 'button',
+             'text': 'submit!!',
              'id': 5678},
             {'element': 'label',
-             'text': 'hello',
-             'id': 1234},
+             'text': 'sal',
+             'id': 5679},
+            {'element': 'label',
+             'text': 'abby',
+             'id': 5680},
+            {'element': 'label',
+             'text': 'bailey',
+             'id': 5681},
+            {'element': 'button',
+             'text': 'i shall be removed',
+             'id': 5667},
+            {'element': 'button',
+             'text': 'i am going to move and change',
+             'id': 7777},
             {'element': 'vbox',
              'id': 9876,
              'contains': [
@@ -144,6 +160,218 @@ layout1  = [{'element': 'button',
                   'id': 8765
                  }
              ]}]
+
+
+layout1  = [{'element': 'button',
+             'text': 'submit',
+             'id': 5678},
+            {'element': 'label',
+             'text': 'hello',
+             'id': 1234},
+            {'element': 'label',
+             'text': 'sal',
+             'id': 5679},
+            {'element': 'label',
+             'text': 'bailey',
+             'id': 5681},
+            {'element': 'label',
+             'text': 'abby',
+             'id': 5680},
+            {'element': 'vbox',
+             'id': 9876,
+             'contains': [
+                 {'element': 'label',
+                  'text': 'inner',
+                  'id': 8765
+                 },
+                 {'element': 'button',
+                  'text': 'i am going to move and change!',
+                  'id': 7777},
+             ]}]
+
+
+def walk_elems(container):
+    i = 0
+
+    for ex in range(len(container['contains'])):
+        e = container['contains'][ex]
+
+        # XXX jt for containers, we want to return a ref to the first
+        # and last object which we contain
+
+        prev = None
+        nxt = None
+        if ex > 0:
+            prev = container['contains'][ex-1]['id']
+        if ex < len(container['contains']) - 1:
+            nxt = container['contains'][ex+1]['id']
+
+        yield e['id'], dissoc(e, 'contains'), \
+            container['id'], prev, nxt
+
+        if 'contains' in e:
+            yield from walk_elems(e)
+
+def merge_dicts(acc, new_elem):
+    [eid, elem, elem_container, prev, nxt] = new_elem
+    new_dict = {eid: {'element': elem,
+                      'container': elem_container,
+                      'previous': prev,
+                      'next': nxt}}
+    merged = merge(acc, new_dict)
+    return merged
+
+def elem_map(container):
+    return reduce(merge_dicts, walk_elems(container), {})
+
+
+def find_reordered(l0, l1, new, rmd, moved,
+                   l0ix=0, l1ix=0, was_reordered=set()):
+
+    # print(l0)
+    # print(l1)
+    # print(l0ix)
+    # print(l1ix)
+    # print(was_reordered)
+    if l0ix == len(l0)-1 and l1ix == len(l1)-1:
+        return
+
+    elif l0[l0ix] == l1[l1ix]:
+        # they're the same element
+        print("{} and {} are the same".format(l0[l0ix], l1[l1ix]))
+        find_reordered(l0, l1,
+                       new,
+                       rmd,
+                       moved,
+                       min(len(l0)-1, l0ix+1),
+                       min(len(l1)-1, l1ix+1),
+                       was_reordered)
+
+    elif l0[l0ix] in was_reordered:
+        # we've come across something in original list that we already
+        # detected was moved. advance over it.
+        print("Came across already-reordered {}".format(l0[l0ix]))
+        find_reordered(l0, l1,
+                       new,
+                       rmd,
+                       moved,
+                       min(len(l0)-1, l0ix+1),
+                       l1ix,
+                       was_reordered)
+
+    elif l0[l0ix] in rmd or l0[l0ix] in moved:
+        # we've come across something in the original list that was
+        # moved from this container, or removed from the
+        # layout. advance over it
+        print("SIDE EFFECT REMOVE/MOVE-OUT {}".format(l0[l0ix]))
+        find_reordered(l0, l1,
+                       new,
+                       rmd,
+                       moved,
+                       min(len(l0)-1, l0ix+1),
+                       l1ix,
+                       was_reordered)
+
+    elif l1[l1ix] in new or l1[l1ix] in moved:
+        print("SIDE EFFECT ADD/MOVE-IN {} at {}".format(l1[l1ix], l1ix))
+        find_reordered(l0, l1,
+                       new,
+                       rmd,
+                       moved,
+                       l0ix,
+                       min(len(l1)-1, l1ix+1),
+                       was_reordered)
+
+    else:
+        # a reordering in our container
+        print("REORDERING SIDE EFFECT REMOVE {}".format(l1[l1ix]))
+        print("REORDERING SIDE EFFECT ADD {} (at index {}?)".format(l1[l1ix], l0ix))
+        was_reordered.add(l1[l1ix])
+        find_reordered(l0, l1,
+                       new,
+                       rmd,
+                       moved,
+                       l0ix,
+                       min(len(l1)-1, l1ix+1),
+                       was_reordered)
+
+print()
+print("Equivalent lists")
+find_reordered([1, 2, 3, 4], [1, 2, 3, 4], set(), set(), set(), 0, 0, set())
+
+print()
+print("Simple reorder")
+find_reordered([1, 2, 3, 4], [1, 3, 2, 4], set(), set(), set(), 0, 0, set())
+
+print()
+print("Simple reorder at tail")
+find_reordered([1, 2, 3, 4], [1, 2, 4, 3], set(), set(), set(), 0, 0, set())
+
+print()
+print("Double reorder")
+find_reordered([1, 2, 3, 4, 5, 6], [1, 3, 2, 4, 6, 5], set(), set(), set(), 0, 0, set())
+
+print()
+print("Added element")
+find_reordered([1, 2, 3, 4], [1, 2, 5, 3, 4],
+               set([5]), set(), set(), 0, 0, set())
+
+print()
+print("Removed element")
+find_reordered([1, 2, 3, 4], [1, 2, 4],
+               set(), set([3]), set(), 0, 0, set())
+
+print()
+print("Moved element in")
+find_reordered([1, 2, 3, 4], [1, 2, 5, 3, 4],
+               set(), set(), set([5]), 0, 0, set())
+
+print()
+print("Moved element out")
+find_reordered([1, 2, 5, 3, 4], [1, 2, 3, 4],
+               set(), set(), set([5]), 0, 0, set())
+
+
+def render_diff(l0, l1):
+    elemmap_0 = elem_map(l0)
+    elemmap_1 = elem_map(l1)
+
+    elems_0 = set(elemmap_0.keys())
+    elems_1 = set(elemmap_1.keys())
+
+    common = elems_0.intersection(elems_1)
+
+    new_elems = elems_1 - elems_0
+    rm_elems = elems_0 - elems_1
+
+    print("Partial?")
+    changed = set()
+    moved = set()
+    reordered = set()
+
+
+    for e0, e1 in zip(map(lambda x: get(x, elemmap_0), common),
+                      map(lambda x: get(x, elemmap_1), common)):
+        if e0['element'] != e1['element']:
+            changed.add(e0['element']['id'])
+        if e0['container'] != e1['container']:
+            moved.add(e0['element']['id'])
+
+    find_reordered(l0, l1, new_elems, rm_elems, moved)
+
+
+    print("new elements: {}".format(new_elems))
+    print("rm elements: {}".format(rm_elems))
+    print("changed element: {}".format(changed))
+    print("moved element: {}".format(moved))
+    print("reordered element: {}".format(reordered))
+
+# render_diff({'contains': layout0, 'id': 0},
+#             {'contains': layout1, 'id': 0})
+
+# given two layouts, return a 3-tuple of those elements which were added (and their path), those elements which were removed (and their prior path, i guess), and those elements which were changed.
+
+#
 
 #window.setLayout(vbox)
 #window.show()
