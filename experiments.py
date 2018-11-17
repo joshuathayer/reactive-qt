@@ -196,9 +196,6 @@ def walk_elems(container):
     for ex in range(len(container['contains'])):
         e = container['contains'][ex]
 
-        # XXX jt for containers, we want to return a ref to the first
-        # and last object which we contain
-
         prev = None
         nxt = None
         if ex > 0:
@@ -206,7 +203,9 @@ def walk_elems(container):
         if ex < len(container['contains']) - 1:
             nxt = container['contains'][ex+1]['id']
 
-        yield e['id'], dissoc(e, 'contains'), \
+        # yield e['id'], dissoc(e, 'contains'), \
+        #     container['id'], prev, nxt
+        yield e['id'], e, \
             container['id'], prev, nxt
 
         if 'contains' in e:
@@ -226,14 +225,15 @@ def elem_map(container):
 
 
 def find_reordered(l0, l1, new, rmd, moved,
-                   l0ix=0, l1ix=0, was_reordered=set()):
+                   l0ix, l1ix, was_reordered, container):
 
-    # print(l0)
-    # print(l1)
-    # print(l0ix)
-    # print(l1ix)
-    # print(was_reordered)
+    print(l0)
+    print(l1)
+    print(l0ix)
+    print(l1ix)
+    print(was_reordered)
     if l0ix == len(l0)-1 and l1ix == len(l1)-1:
+        # XXX this isn't right? [1,2,3] and [1,2,4] won't get caught i think
         return
 
     elif l0[l0ix] == l1[l1ix]:
@@ -245,7 +245,7 @@ def find_reordered(l0, l1, new, rmd, moved,
                        moved,
                        min(len(l0)-1, l0ix+1),
                        min(len(l1)-1, l1ix+1),
-                       was_reordered)
+                       was_reordered, container)
 
     elif l0[l0ix] in was_reordered:
         # we've come across something in original list that we already
@@ -257,35 +257,36 @@ def find_reordered(l0, l1, new, rmd, moved,
                        moved,
                        min(len(l0)-1, l0ix+1),
                        l1ix,
-                       was_reordered)
+                       was_reordered, container)
 
     elif l0[l0ix] in rmd or l0[l0ix] in moved:
         # we've come across something in the original list that was
         # moved from this container, or removed from the
         # layout. advance over it
-        print("SIDE EFFECT REMOVE/MOVE-OUT {}".format(l0[l0ix]))
+        print("SIDE EFFECT REMOVE/MOVE-OUT {} container {}".format(l0[l0ix], container))
+
         find_reordered(l0, l1,
                        new,
                        rmd,
                        moved,
                        min(len(l0)-1, l0ix+1),
                        l1ix,
-                       was_reordered)
+                       was_reordered, container)
 
     elif l1[l1ix] in new or l1[l1ix] in moved:
-        print("SIDE EFFECT ADD/MOVE-IN {} at {}".format(l1[l1ix], l1ix))
+        print("SIDE EFFECT ADD/MOVE-IN {} at {} container {}".format(l1[l1ix], l1ix, container))
         find_reordered(l0, l1,
                        new,
                        rmd,
                        moved,
                        l0ix,
                        min(len(l1)-1, l1ix+1),
-                       was_reordered)
+                       was_reordered, container)
 
     else:
         # a reordering in our container
         print("REORDERING SIDE EFFECT REMOVE {}".format(l1[l1ix]))
-        print("REORDERING SIDE EFFECT ADD {} (at index {}?)".format(l1[l1ix], l0ix))
+        print("REORDERING SIDE EFFECT ADD {} at index {} container {}".format(l1[l1ix], l0ix, container))
         was_reordered.add(l1[l1ix])
         find_reordered(l0, l1,
                        new,
@@ -293,43 +294,43 @@ def find_reordered(l0, l1, new, rmd, moved,
                        moved,
                        l0ix,
                        min(len(l1)-1, l1ix+1),
-                       was_reordered)
+                       was_reordered, container)
 
 print()
 print("Equivalent lists")
-find_reordered([1, 2, 3, 4], [1, 2, 3, 4], set(), set(), set(), 0, 0, set())
+find_reordered([1, 2, 3, 4], [1, 2, 3, 4], set(), set(), set(), 0, 0, set(), 0)
 
 print()
 print("Simple reorder")
-find_reordered([1, 2, 3, 4], [1, 3, 2, 4], set(), set(), set(), 0, 0, set())
+find_reordered([1, 2, 3, 4], [1, 3, 2, 4], set(), set(), set(), 0, 0, set(), 0)
 
 print()
 print("Simple reorder at tail")
-find_reordered([1, 2, 3, 4], [1, 2, 4, 3], set(), set(), set(), 0, 0, set())
+find_reordered([1, 2, 3, 4], [1, 2, 4, 3], set(), set(), set(), 0, 0, set(), 0)
 
 print()
 print("Double reorder")
-find_reordered([1, 2, 3, 4, 5, 6], [1, 3, 2, 4, 6, 5], set(), set(), set(), 0, 0, set())
+find_reordered([1, 2, 3, 4, 5, 6], [1, 3, 2, 4, 6, 5], set(), set(), set(), 0, 0, set(), 0)
 
 print()
 print("Added element")
 find_reordered([1, 2, 3, 4], [1, 2, 5, 3, 4],
-               set([5]), set(), set(), 0, 0, set())
+               set([5]), set(), set(), 0, 0, set(), 0)
 
 print()
 print("Removed element")
 find_reordered([1, 2, 3, 4], [1, 2, 4],
-               set(), set([3]), set(), 0, 0, set())
+               set(), set([3]), set(), 0, 0, set(), 0)
 
 print()
 print("Moved element in")
 find_reordered([1, 2, 3, 4], [1, 2, 5, 3, 4],
-               set(), set(), set([5]), 0, 0, set())
+               set(), set(), set([5]), 0, 0, set(), 0)
 
 print()
 print("Moved element out")
 find_reordered([1, 2, 5, 3, 4], [1, 2, 3, 4],
-               set(), set(), set([5]), 0, 0, set())
+               set(), set(), set([5]), 0, 0, set(), 0)
 
 
 def render_diff(l0, l1):
@@ -344,7 +345,6 @@ def render_diff(l0, l1):
     new_elems = elems_1 - elems_0
     rm_elems = elems_0 - elems_1
 
-    print("Partial?")
     changed = set()
     moved = set()
     reordered = set()
@@ -357,21 +357,52 @@ def render_diff(l0, l1):
         if e0['container'] != e1['container']:
             moved.add(e0['element']['id'])
 
-    find_reordered(l0, l1, new_elems, rm_elems, moved)
-
-
     print("new elements: {}".format(new_elems))
     print("rm elements: {}".format(rm_elems))
     print("changed element: {}".format(changed))
     print("moved element: {}".format(moved))
-    print("reordered element: {}".format(reordered))
 
-# render_diff({'contains': layout0, 'id': 0},
-#             {'contains': layout1, 'id': 0})
+    # XXX this needs to be made recursive, or at least iterate over all those elements in union(common, new) which have `contains`
+    # see below for pseudocode
+    find_reordered(list(map(lambda x: x['id'], l0['contains'])),
+                   list(map(lambda x: x['id'], l1['contains'])),
+                   new_elems, rm_elems, moved, 0, 0, set(),
+                   l0['id'])
 
-# given two layouts, return a 3-tuple of those elements which were added (and their path), those elements which were removed (and their prior path, i guess), and those elements which were changed.
+    # filter union(common, new) for those which have containing
+    # for all those x call find_ordered:
+    # find_reordered(or(elemap0[x][id], []), elemap1[x][id], new, rm, mvd, 0, 0, set(), elemap1[x]['id'])
+    print("elemmap_1 {}".format(elemmap_1))
+    print("elems_1 {}".format(elems_1))
+    containers = filter(lambda x: 'contains' in elemmap_1[x]['element'], elems_1)
+    print("Containers: {}".format(containers))
 
-#
+    for cid in containers:
+        print("cid: {}".format(cid))
+
+        if cid in elemmap_0:
+            e0 = list(map(lambda x: x['id'], elemmap_0[cid]['element']['contains']))
+        else:
+            e0 = []
+
+        contained = list(map(lambda x: x['id'], elemmap_1[cid]['element']['contains']))
+
+        print("Contained {}".format(contained))
+        find_reordered(
+            e0,
+            contained,
+            new_elems,
+            rm_elems,
+            moved,
+            0,
+            0,
+            set(),
+            cid)
+
+
+render_diff({'contains': layout0, 'id': 0},
+            {'contains': layout1, 'id': 0})
+
 
 #window.setLayout(vbox)
 #window.show()
