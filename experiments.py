@@ -2,10 +2,8 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, \
     QVBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, \
     QLayout
 from PyQt5.QtCore import QObject
-
-from deepdiff import DeepDiff
-
-from dictdiffer import diff
+import PyQt5.QtGui
+from PyQt5.QtCore import Qt
 
 import uuid
 
@@ -13,9 +11,6 @@ from toolz.dicttoolz import dissoc, merge
 from toolz.itertoolz import get
 from functools import reduce, partial
 
-app = QApplication([])
-window = QWidget()
-vbox = QVBoxLayout()
 
 # def render0(old, new):
 
@@ -221,21 +216,27 @@ def elem_map(container):
 
 def find_reordered(l0, l1, new, rmd, moved,
                    l0ix, l1ix, was_reordered, container):
-    # print(l0)
-    # print(l1)
-    # print(l0ix)
-    # print(l1ix)
+    # print("----vv---")
+    # print("{} {} {}".format(l0, l0ix, l0[l0ix]))
+    # print("{} {} {}".format(l1, l1ix, l1[l1ix]))
+    print("{} {}".format(l0, l0ix))
+    print("{} {}".format(l1, l1ix))
+    print(len(l0))
     # print(was_reordered)
     # print("len0 {}".format(len(l0)))
     # print("len1 {}".format(len(l1)))
 
-    if l1[l1ix] in new or l1[l1ix] in moved:
-        # print("SIDE EFFECT ADD/MOVE-IN {} at {} container {}".format(l1[l1ix], l1ix, container))
+    if len(l1) > 0 and (l1[l1ix] in new or l1[l1ix] in moved):
+        print("SIDE EFFECT ADD/MOVE-IN {} at {} container {}".format(l1[l1ix], l1ix, container))
 
-        yield ['add', l1[l1ix], l1ix, container]
+        if l1[l1ix] in new:
+            yield ['add', l1[l1ix], l1ix, container]
+
+        if l1[l1ix] in moved:
+            yield ['reattach', l1[l1ix], l1ix, container]
 
         # >= catches case where l0 is empty
-        if l0ix >= len(l0) - 1 and l1ix == len(l1) - 1:
+        if l0ix >= len(l0) - 1 and l1ix >= len(l1) - 1:
             return
 
         yield from find_reordered(l0, l1,
@@ -246,10 +247,10 @@ def find_reordered(l0, l1, new, rmd, moved,
                                   min(len(l1)-1, l1ix+1),
                                   was_reordered, container)
 
-    elif l0[l0ix] == l1[l1ix]:
+    elif len(l1) > 0 and (len(l0) > 0 and l0[l0ix] == l1[l1ix]):
         # they're the same element
         # print("{} and {} are the same".format(l0[l0ix], l1[l1ix]))
-        if l0ix == len(l0) -1 and l1ix == len(l1) - 1:
+        if l0ix >= len(l0) -1 and l1ix >= len(l1) - 1:
             return
         yield from find_reordered(l0, l1,
                                   new,
@@ -259,11 +260,11 @@ def find_reordered(l0, l1, new, rmd, moved,
                                   min(len(l1)-1, l1ix+1),
                                   was_reordered, container)
 
-    elif l0[l0ix] in was_reordered:
+    elif len(l0) > 0 and l0[l0ix] in was_reordered:
         # we've come across something in original list that we already
         # detected was moved. advance over it.
-        # print("Came across already-reordered {}".format(l0[l0ix]))
-        if l0ix == len(l0) -1 and l1ix == len(l1) - 1:
+        print("Came across already-reordered {}".format(l0[l0ix]))
+        if l0ix >= len(l0) -1 and l1ix >= len(l1) - 1:
             return
         yield from find_reordered(l0, l1,
                                   new,
@@ -273,13 +274,17 @@ def find_reordered(l0, l1, new, rmd, moved,
                                   l1ix,
                                   was_reordered, container)
 
-    elif l0[l0ix] in rmd or l0[l0ix] in moved:
+    elif len(l0) > 0 and (l0[l0ix] in rmd or l0[l0ix] in moved):
         # we've come across something in the original list that was
         # moved from this container, or removed from the
         # layout. advance over it
         # print("SIDE EFFECT REMOVE/MOVE-OUT {} container {}".format(l0[l0ix], container))
-        yield ['remove', l0[l0ix], container]
-        if l0ix == len(l0) -1 and l1ix == len(l1) - 1:
+        if l0[l0ix] in rmd:
+            yield ['remove', l0[l0ix], container]
+        if l0[l0ix] in moved:
+            yield ['detach', l0[l0ix], container]
+
+        if l0ix >= len(l0) -1 and l1ix >= len(l1) - 1:
             return
 
         yield from find_reordered(l0, l1,
@@ -290,13 +295,12 @@ def find_reordered(l0, l1, new, rmd, moved,
                                   l1ix,
                                   was_reordered, container)
 
-    else:
+    elif len(l0) > 0 and len(l1) > 0:
         # a reordering in our container
-        # print("REORDERING SIDE EFFECT REMOVE {}".format(l1[l1ix]))
-        # print("REORDERING SIDE EFFECT ADD {} at index {} container {}".format(l1[l1ix], l0ix, container))
+        print("REORDERING SIDE EFFECT REMOVE {}".format(l1[l1ix]))
+        print("REORDERING SIDE EFFECT ADD {} at index {} container {}".format(l1[l1ix], l1ix, container))
 
-        yield ['remove', l1[l1ix], container]
-        yield ['add', l1[l1ix], l0ix, container]
+        yield ['reorder', l1[l1ix], l1ix, container]
 
         was_reordered.add(l1[l1ix])
 
@@ -311,13 +315,15 @@ def find_reordered(l0, l1, new, rmd, moved,
                                   min(len(l1)-1, l1ix+1),
                                   was_reordered, container)
 
+
 # print()
 # print("Equivalent lists")
 # find_reordered([1, 2, 3, 4], [1, 2, 3, 4], set(), set(), set(), 0, 0, set(), 0)
 
 # print()
 # print("Simple reorder")
-# find_reordered([1, 2, 3, 4], [1, 3, 2, 4], set(), set(), set(), 0, 0, set(), 0)
+# for x in find_reordered([1, 2, 3, 4], [1, 3, 2, 4], set(), set(), set(), 0, 0, set(), 0):
+#     print(x)
 
 # print()
 # print("Simple reorder at tail")
@@ -357,6 +363,15 @@ def find_reordered(l0, l1, new, rmd, moved,
 # find_reordered([1, 2, 5, 3, 4], [1, 2, 3, 4],
 #                set(), set(), set([5]), 0, 0, set(), 0)
 
+
+# print()
+# print("Add element, reorder later ones")
+# for x in find_reordered([1, 2, 3, 4], [1, 2, 5, 4, 3],
+#                         set([5]), set(), set(), 0, 0, set(), 0):
+#     print(x)
+
+
+
 def instantiate_new_elements(new_elements, element_map):
     for el in new_elements:
         print(el['element']['element'])
@@ -375,12 +390,11 @@ def instantiate_new_elements(new_elements, element_map):
     return element_map
 
 def take_action(action, args, all_elements):
+
     if action == 'add':
         elem, pos, container = args
-
         e = all_elements[elem]
         c = all_elements[container]
-        print("{} {} {}".format(e, pos, c))
         if isinstance(e, QLayout):
             c.insertLayout(pos, e)
         else:
@@ -394,9 +408,45 @@ def take_action(action, args, all_elements):
             c.removeItem(e)
         else:
             c.removeWidget(e)
+        e.deleteLater()
+        # del all_elements[elem]
+
+    elif action == 'reorder':
+        elem, pos, container = args
+        e = all_elements[elem]
+        c = all_elements[container]
+        if isinstance(e, QLayout):
+            c.removeItem(e)
+            c.insertLayout(pos, e)
+        else:
+            c.removeWidget(e)
+            c.insertWidget(pos, e)
+
+    elif action == 'detach':
+        elem, container = args
+        e = all_elements[elem]
+        c = all_elements[container]
+        if isinstance(e, QLayout):
+            c.removeItem(e)
+        else:
+            c.removeWidget(e)
+
+    elif action == 'reattach':
+        elem, pos, container = args
+        e = all_elements[elem]
+        c = all_elements[container]
+        if isinstance(e, QLayout):
+            c.insertLayout(pos, e)
+        else:
+            c.insertWidget(pos, e)
+
+
 def render_diff(l0, l1, element_map): # should return new element map
+    print("l1: {}".format(l1))
     elemmap_0 = elem_map(l0)
     elemmap_1 = elem_map(l1)
+    print("elemmap 1 {}".format(elemmap_1))
+    print("element map {}".format(element_map))
 
     elems_0 = set(elemmap_0.keys())
     elems_1 = set(elemmap_1.keys())
@@ -404,6 +454,7 @@ def render_diff(l0, l1, element_map): # should return new element map
     common = elems_0.intersection(elems_1)
 
     new_elems = elems_1 - elems_0  # just IDs
+    print("new elems {}".format(new_elems))
     rm_elems = elems_0 - elems_1
 
     changed = set()
@@ -411,9 +462,11 @@ def render_diff(l0, l1, element_map): # should return new element map
     reordered = set()
 
     new_element_objs = list(map(lambda x: elemmap_1[x], new_elems))
+    print("new obs {}".format(new_element_objs))
     element_map = instantiate_new_elements(new_element_objs,
                                            element_map)
-    print(element_map)
+    print("element map after {}".format(element_map))
+
     for e0, e1 in zip(map(lambda x: get(x, elemmap_0), common),
                       map(lambda x: get(x, elemmap_1), common)):
         if e0['element'] != e1['element']:
@@ -431,23 +484,32 @@ def render_diff(l0, l1, element_map): # should return new element map
                              new_elems, rm_elems, moved, 0, 0, set(),
                              l0['id'])
 
+    all_elems = merge(elemmap_0, elemmap_1)
+
+    # containers = filter(lambda x: 'contains'
+    #                     in elemmap_1[x]['element'], elems_1)
+
+    containers = filter(lambda x: 'contains'
+                        in all_elems[x]['element'], set(all_elems.keys()))
+
     for a in actions:
         print(a)
         take_action(a[0], a[1:], element_map)
 
-    containers = filter(lambda x: 'contains'
-                        in elemmap_1[x]['element'], elems_1)
-
     for cid in containers:
 
         if cid in elemmap_0:
+            # e0 = list(map(lambda x: x['id'],
+            #               elemmap_0[cid]['element']['contains']))
             e0 = list(map(lambda x: x['id'],
-                          elemmap_0[cid]['element']['contains']))
+                          all_elems[cid]['element']['contains']))
+
         else:
             e0 = []
 
         contained = list(map(lambda x: x['id'],
-                             elemmap_1[cid]['element']['contains']))
+                             all_elems[cid]['element']['contains']))
+        print("CONTAINED {}".format(contained))
 
         actions = find_reordered(e0,
                                  contained,
@@ -460,55 +522,59 @@ def render_diff(l0, l1, element_map): # should return new element map
                                  cid)
         for a in actions:
             print(a)
+            take_action(a[0], a[1:], element_map)
+
+    for el in rm_elems:
+        del element_map[el]
 
     return element_map
 
-root_layout = {0: vbox}
 
-next_layout = render_diff({'contains': [], 'id': 0},
-                          {'contains': layout0, 'id': 0},
-                          root_layout)
+app = QApplication([])
+window = QWidget()
+vbox = QVBoxLayout()
 
-render_diff({'contains': layout0, 'id': 0},
-            {'contains': layout1, 'id': 0},
-            next_layout)
+class AppWindow(QWidget):
+    def __init__(self, layouts, elements):
+        super().__init__()
+        self.layouts = layouts
+        self.current_layout_ix = 0
+        self.elements = elements
+
+    def next_layout(self):
+        c = self.layouts[self.current_layout_ix]
+        self.current_layout_ix = (self.current_layout_ix + 1) % len(self.layouts)
+        c_next = self.layouts[self.current_layout_ix]
+        self.elements = render_diff({'contains': c, 'id': 0},
+                                    {'contains': c_next, 'id': 0},
+                                    self.elements)
+
+    def prev_layout(self):
+        c = self.layouts[self.current_layout_ix]
+        self.current_layout_ix = (self.current_layout_ix - 1) % len(self.layouts)
+        c_next = self.layouts[self.current_layout_ix]
+        self.elements = render_diff({'contains': c, 'id': 0},
+                                    {'contains': c_next, 'id': 0},
+                                    self.elements)
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Q:
+            self.close()
+        elif e.key() == Qt.Key_Comma:
+            self.next_layout()
+        elif e.key() == Qt.Key_Period:
+            self.prev_layout()
+
+layouts = [[], layout0, layout1]
+elements = {0: vbox}
+
+appwindow = AppWindow(layouts, elements)
+
+render_diff({'contains': [], 'id': 0},
+            {'contains': [], 'id': 0},
+            elements)
 
 
-window.setLayout(vbox)
-window.show()
+appwindow.setLayout(vbox)
+appwindow.show()
 app.exec_()
-
-
-# >>> t1 = {'name': 'josh', 'age': 43, 'place': "san francisco"}
-# >>> t2 = {'name': 'josh', 'age': 44, 'place': "san francisco", 'status':'sick'}
-# >>> dd = DeepDiff(t1, t2, verbose_level=1, view='tree')
-# >>> dd
-# {'values_changed': {<root['age'] t1:43, t2:44>}, 'dictionary_item_added': {<root['status'] t1:Not Present, t2:'sick'>}}
-# >>> (added,) = dd['dictionary_item_added']
-# >>> added
-# <root['status'] t1:Not Present, t2:'sick'>
-# >>> added.up.t2_child_rel.param
-# 'status'
-# >>> added.up.t2_child_rel.child
-# 'sick'
-
-# >>> a=['x','y','z']
-# >>> b=['y','z','t']
-# >>> ff = DeepDiff(a, b, view='tree')
-# >>> ff
-# {'values_changed': {<root[2] t1:'z', t2:'t'>, <root[1] t1:'y', t2:'z'>, <root[0] t1:'x', t2:'y'>}}
-# >>> ff = DeepDiff(a, b, view='tree', ignore_order=True)
-# >>> ff
-# {'iterable_item_removed': {<root[0] t1:'x', t2:Not Present>}, 'iterable_item_added': {<root[2] t1:Not Present, t2:'t'>}}
-# >>> (removed,) = ff['iterable_item_removed']
-# >>> removed
-# <root[0] t1:'x', t2:Not Present>
-# >>> removed.up.t1_child_rel.child
-# 'x'
-# >>> removed.up.t1_child_rel.param
-# 0
-# >>> (added,) = ff['iterable_item_added']
-# >>> added.up.t2_child_rel.child
-# 't'
-# >>> added.up.t2_child_rel.param
-# 2
