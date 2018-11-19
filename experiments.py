@@ -11,19 +11,6 @@ from toolz.dicttoolz import dissoc, merge
 from toolz.itertoolz import get
 from functools import reduce, partial
 
-def input(prompt):
-    [vbox
-     [label {text: db_val('prompt')}]
-     [input {on-submit: ...}]]
-
-[vbox
- [input "what's your name"]]
-
-
-[vbox {id: 123, color: blue}
- [label {text: "this is a label"}]
- [label {text: "this is another label"}]]
-
 layout0  = [{'element': 'button',
              'text': 'submit!!',
              'id': 5678},
@@ -361,8 +348,11 @@ def render_diff(l0, l1, element_map): # should return new element map
             else:
                 e0 = []
 
-            e1 = list(map(lambda x: x['id'],
-                          em1[cid]['element']['contains']))
+            if cid in em1:
+                e1 = list(map(lambda x: x['id'],
+                              em1[cid]['element']['contains']))
+            else:
+                e1 = []
 
             print("RECURSE CONTAINED 0 {}".format(e0))
             print("RECURSE CONTAINED 1 {}".format(e1))
