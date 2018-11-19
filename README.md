@@ -22,21 +22,21 @@ Imagine you've bootstrapped your Qt app with a simple vbox:
 
 We build a simple python data structure which represents the initial state of the app:
 
-    layout0 = [{'component': 'vbox',
-                'id': 0,
-                'contains': []}]
+    layout0 = {'component': 'vbox',
+               'id': 0,
+               'contains': []}
 
 ...and create a data structure for the "next" state of the app (which is to say, the state we _want_ our app to be in):
 
-    layout0 = [{'component': 'vbox',
-                'id': 0,
-                'contains': [
-                  {'component': 'label',
-                   'id': 1000,
-                   'text': 'hello'},
-                  {'component': 'label',
-                   'id': 1001,
-                   'text': 'world'}]]}]
+    layout0 = {'component': 'vbox',
+               'id': 0,
+               'contains': [
+                 {'component': 'label',
+                  'id': 1000,
+                  'text': 'hello'},
+                 {'component': 'label',
+                  'id': 1001,
+                  'text': 'world'}]}
 
 Then we call `render_diff`, giving the current layout, the next layout, and a dictionary of all known Qt elements. This call will update the Qt UI to make it reflect the new application state, and will return a new value for the dictionary of all known Qt elements.
 
@@ -44,24 +44,24 @@ Then we call `render_diff`, giving the current layout, the next layout, and a di
 
 Now we can make changes to the UI:
 
-    layout2 = [{'component': 'vbox',
-                'id': 0,
-                'contains': [
-                  {'component': 'label',
-                   'id': 1001,
-                   'text': 'world:'}
-                  {'component': 'label',
-                   'id': 1000,
-                   'text': 'hello!'},
-                  {'component': 'vbox',
-                   'id': 2000,
-                   'contains': [
-                      {'component': 'button',
-                       'id': 2001,
-                       'text': 'continue'},
-                      {'component': 'button',
-                       'id': 2002,
-                       'text': 'quit'}]}]}]
+    layout2 = {'component': 'vbox',
+               'id': 0,
+               'contains': [
+                 {'component': 'label',
+                  'id': 1001,
+                  'text': 'world:'}
+                 {'component': 'label',
+                  'id': 1000,
+                  'text': 'hello!'},
+                 {'component': 'vbox',
+                  'id': 2000,
+                  'contains': [
+                     {'component': 'button',
+                      'id': 2001,
+                      'text': 'continue'},
+                     {'component': 'button',
+                      'id': 2002,
+                      'text': 'quit'}]}]}
 
     elements = render_diff(layout1, layout2, elements)
 
