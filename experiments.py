@@ -82,6 +82,9 @@ def merge_dicts(acc, new_elem):
     merged = merge(acc, new_dict)
     return merged
 
+# Given an element, return a map of element ID to element dict for all
+# elements the provided element contains, recursively (and the empty
+# map if it contains no elements)
 def elem_map(container):
     return reduce(merge_dicts, walk_elems(container), {})
 
@@ -261,20 +264,22 @@ def take_action(action, args, all_elements):
         else:
             c.insertWidget(pos, e)
 
-
+# l0 is the layout we're moving _from_
+# l1 is the layout we're moving _to_
 def render_diff(l0, l1, element_map):
 
-    # generate maps of IDs to dicts representing widgets
-    elemmap_0 = elem_map(l0)  # native objects
-    elemmap_1 = elem_map(l1)  # native objects
+    # generate maps of IDs to dicts representing widgets for _every_
+    # element in a layout (recursively)
+    elemmap_0 = elem_map(l0)
+    elemmap_1 = elem_map(l1)
 
+    # just the keys of those maps
     elems_0 = set(elemmap_0.keys())
     elems_1 = set(elemmap_1.keys())
 
+    # build sets of interesting element IDs
     common = elems_0.intersection(elems_1)
-
-    new_elems = elems_1 - elems_0  # just IDs
-    print("new elems {}".format(new_elems))
+    new_elems = elems_1 - elems_0
     rm_elems = elems_0 - elems_1
 
     # if any removed elements are containers, their contained elements
@@ -284,13 +289,16 @@ def render_diff(l0, l1, element_map):
             for contained in elemmap_0[el]['element']['contains']:
                 rm_elems.add(contained['id'])
 
+    # instantiate Qt objects for every new element, and place them in
+    # a dict keyed by the element id
+    element_map = instantiate_new_elements(
+        list(map(lambda x: elemmap_1[x], new_elems)),
+        element_map)
+
     changed = set()
     moved = set()
     reordered = set()
 
-    new_element_objs = list(map(lambda x: elemmap_1[x], new_elems))
-    element_map = instantiate_new_elements(new_element_objs,
-                                           element_map)
 
     for e0, e1 in zip(map(lambda x: get(x, elemmap_0), common),
                       map(lambda x: get(x, elemmap_1), common)):
