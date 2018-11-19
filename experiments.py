@@ -8,6 +8,7 @@ import uuid
 from toolz.dicttoolz import dissoc, merge
 from toolz.itertoolz import get
 from functools import reduce, partial
+import collections
 
 layout0  = [{'component': 'button',
              'text': 'submit!!',
@@ -264,9 +265,14 @@ def take_action(action, args, all_elements):
         else:
             c.insertWidget(pos, e)
 
-# l0 is the layout we're moving _from_
-# l1 is the layout we're moving _to_
-def render_diff(l0, l1, element_map):
+
+def compare_layouts(l0, l1, element_map):
+
+    ret = collections.namedtuple('LayoutAnalysis',
+                                 ['elemmap_0', 'elemmap_1'
+                                  'new_elems', 'rm_elems',
+                                  'changed','moved', 'reordered',
+                                  'containers', 'element_map'])
 
     # generate maps of IDs to dicts representing widgets for _every_
     # element in a layout (recursively)
@@ -282,13 +288,6 @@ def render_diff(l0, l1, element_map):
     new_elems = elems_1 - elems_0
     rm_elems = elems_0 - elems_1
 
-    # if any removed elements are containers, their contained elements
-    # must also be removed!
-    for el in rm_elems:
-        if 'contains' in elemmap_0[el]['element']:
-            for contained in elemmap_0[el]['element']['contains']:
-                rm_elems.add(contained['id'])
-
     # instantiate Qt objects for every new element, and place them in
     # a dict keyed by the element id
     element_map = instantiate_new_elements(
@@ -299,7 +298,11 @@ def render_diff(l0, l1, element_map):
     moved = set()
     reordered = set()
 
-
+    # detect those elements were retained in both layouts. for each,
+    # if their contents differ, we add them to the list of changed
+    # elements (XXX this should compare elements without their
+    # `contains` attributes). If the element is contained by
+    # different element, we add to the list of moved elements.
     for e0, e1 in zip(map(lambda x: get(x, elemmap_0), common),
                       map(lambda x: get(x, elemmap_1), common)):
         if e0['element'] != e1['element']:
@@ -307,15 +310,42 @@ def render_diff(l0, l1, element_map):
         if e0['container'] != e1['container']:
             moved.add(e0['element']['id'])
 
-    actions = find_reordered(list(map(lambda x: x['id'], l0['contains'])),
-                             list(map(lambda x: x['id'], l1['contains'])),
-                             new_elems, rm_elems, moved, 0, 0, set(),
-                             l0['id'])
+    # if any removed elements are containers, their contained elements
+    # must also be removed (though if we moved an element from a
+    # container that was being removed, we don't delete it)
+    for el in rm_elems:
+        if 'contains' in elemmap_0[el]['element']:
+            for contained in elemmap_0[el]['element']['contains']:
+                if contained['id'] not in moved:
+                    rm_elems.add(contained['id'])
 
     all_elems = merge(elemmap_0, elemmap_1)
 
     containers = filter(lambda x: 'contains'
                         in all_elems[x]['element'], set(all_elems.keys()))
+
+    ret.elemmap_0 = elemmap_0
+    ret.elemmap_1 = elemmap_1
+    ret.new_elems = new_elems
+    ret.rm_elems = rm_elems
+    ret.changed = changed
+    ret.moved = moved
+    ret.reordered = reordered
+    ret.element_map = element_map
+    ret.containers = containers
+
+    return ret
+# l0 is the layout we're moving _from_
+# l1 is the layout we're moving _to_
+def render_diff(l0, l1, element_map):
+
+    cl  = compare_layouts(l0, l1, element_map)
+
+    actions = find_reordered(list(map(lambda x: x['id'], l0['contains'])),
+                             list(map(lambda x: x['id'], l1['contains'])),
+                             cl.new_elems, cl.rm_elems, cl.moved, 0, 0, set(),
+                             l0['id'])
+
 
     def do_action(the_actions, em0, em1):
 
@@ -323,15 +353,11 @@ def render_diff(l0, l1, element_map):
             return
 
         for a in the_actions:
-            take_action(a[0], a[1:], element_map)
+            take_action(a[0], a[1:], cl.element_map)
 
         all_elems = merge(em0, em1)
 
-        containers = filter(lambda x: 'contains'
-                            in all_elems[x]['element'],
-                            set(all_elems.keys()))
-
-        for cid in containers:
+        for cid in cl.containers:
 
             e0 = []
             if cid in em0:
@@ -348,9 +374,9 @@ def render_diff(l0, l1, element_map):
 
             new_actions = find_reordered(e0,
                                          e1,
-                                         new_elems,
-                                         rm_elems,
-                                         moved,
+                                         cl.new_elems,
+                                         cl.rm_elems,
+                                         cl.moved,
                                          0,
                                          0,
                                          set(),
@@ -358,12 +384,12 @@ def render_diff(l0, l1, element_map):
 
             do_action(new_actions, e0_dict, e1_dict)
 
-    do_action(actions, elemmap_0, elemmap_1)
+    do_action(actions, cl.elemmap_0, cl.elemmap_1)
 
-    for el in rm_elems:
-        del element_map[el]
+    for el in cl.rm_elems:
+        del cl.element_map[el]
 
-    return element_map
+    return cl.element_map
 
 
 app = QApplication([])
