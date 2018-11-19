@@ -28,7 +28,7 @@ We build a simple python data structure which represents the initial state of th
 
 ...and create a data structure for the "next" state of the app (which is to say, the state we _want_ our app to be in):
 
-    layout0 = {'component': 'vbox',
+    layout1 = {'component': 'vbox',
                'id': 0,
                'contains': [
                  {'component': 'label',
