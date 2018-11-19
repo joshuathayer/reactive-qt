@@ -265,7 +265,8 @@ def take_action(action, args, all_elements):
         else:
             c.insertWidget(pos, e)
 
-
+# Do an analysis of the two layouts, finding those elements which are
+# new, which were removed, were moved, etc.
 def compare_layouts(l0, l1, element_map):
 
     ret = collections.namedtuple('LayoutAnalysis',
@@ -335,17 +336,24 @@ def compare_layouts(l0, l1, element_map):
     ret.containers = containers
 
     return ret
+
 # l0 is the layout we're moving _from_
 # l1 is the layout we're moving _to_
+
 def render_diff(l0, l1, element_map):
-
     cl  = compare_layouts(l0, l1, element_map)
+    render_diff_inner(l0, l1, cl)
 
-    actions = find_reordered(list(map(lambda x: x['id'], l0['contains'])),
-                             list(map(lambda x: x['id'], l1['contains'])),
-                             cl.new_elems, cl.rm_elems, cl.moved, 0, 0, set(),
-                             l0['id'])
+def render_diff_inner(l0, l1, cl):
 
+    element_map = cl.element_map
+
+    actions = find_reordered(list(map(lambda x: x['id'],
+                                      l0['contains'])),
+                             list(map(lambda x: x['id'],
+                                      l1['contains'])),
+                             cl.new_elems, cl.rm_elems,
+                             cl.moved, 0, 0, set(), l0['id'])
 
     def do_action(the_actions, em0, em1):
 
@@ -372,14 +380,11 @@ def render_diff(l0, l1, element_map):
             e0_dict = {el_id: all_elems[el_id] for el_id in e0}
             e1_dict = {el_id: all_elems[el_id] for el_id in e1}
 
-            new_actions = find_reordered(e0,
-                                         e1,
+            new_actions = find_reordered(e0, e1,
                                          cl.new_elems,
                                          cl.rm_elems,
                                          cl.moved,
-                                         0,
-                                         0,
-                                         set(),
+                                         0, 0, set(),
                                          cid)
 
             do_action(new_actions, e0_dict, e1_dict)
