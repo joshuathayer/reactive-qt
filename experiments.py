@@ -9,56 +9,56 @@ from toolz.dicttoolz import dissoc, merge
 from toolz.itertoolz import get
 from functools import reduce, partial
 
-layout0  = [{'element': 'button',
+layout0  = [{'component': 'button',
              'text': 'submit!!',
              'id': 5678},
-            {'element': 'label',
+            {'component': 'label',
              'text': 'sal',
              'id': 5679},
-            {'element': 'label',
+            {'component': 'label',
              'text': 'abby',
              'id': 5680},
-            {'element': 'label',
+            {'component': 'label',
              'text': 'bailey',
              'id': 5681},
-            {'element': 'button',
+            {'component': 'button',
              'text': 'i shall be removed',
              'id': 5667},
-            {'element': 'button',
+            {'component': 'button',
              'text': 'i am going to move and change',
              'id': 7777},
-            {'element': 'vbox',
+            {'component': 'vbox',
              'id': 9876,
              'contains': [
-                 {'element': 'label',
+                 {'component': 'label',
                   'text': 'inner',
                   'id': 8765
                  }
              ]}]
 
-layout1  = [{'element': 'button',
+layout1  = [{'component': 'button',
              'text': 'submit',
              'id': 5678},
-            {'element': 'label',
+            {'component': 'label',
              'text': 'hello i am new',
              'id': 1234},
-            {'element': 'label',
+            {'component': 'label',
              'text': 'sal',
              'id': 5679},
-            {'element': 'label',
+            {'component': 'label',
              'text': 'bailey',
              'id': 5681},
-            {'element': 'label',
+            {'component': 'label',
              'text': 'abby',
              'id': 5680},
-            {'element': 'vbox',
+            {'component': 'vbox',
              'id': 9876,
              'contains': [
-                 {'element': 'label',
+                 {'component': 'label',
                   'text': 'inner',
                   'id': 8765
                  },
-                 {'element': 'button',
+                 {'component': 'button',
                   'text': 'i am going to move and change!',
                   'id': 7777},
              ]}]
@@ -193,17 +193,19 @@ def find_reordered(l0, l1, new, rmd, moved,
 # This should grow as we support new elements
 def instantiate_new_elements(new_elements, element_map):
     for el in new_elements:
-        if el['element']['element'] == 'label':
+        e = el['element']
+        comp = e['component']
+        if comp == 'label':
             ob = QLabel()
-            ob.setText(el['element']['text'])
-            element_map[el['element']['id']] = ob
-        elif el['element']['element'] == 'button':
+            ob.setText(e['text'])
+            element_map[e['id']] = ob
+        elif comp == 'button':
             ob = QPushButton()
-            ob.setText(el['element']['text'])
-            element_map[el['element']['id']] = ob
-        elif el['element']['element'] == 'vbox':
+            ob.setText(e['text'])
+            element_map[e['id']] = ob
+        elif comp == 'vbox':
             ob = QVBoxLayout()
-            element_map[el['element']['id']] = ob
+            element_map[e['id']] = ob
 
     return element_map
 
@@ -280,7 +282,6 @@ def render_diff(l0, l1, element_map):
     for el in rm_elems:
         if 'contains' in elemmap_0[el]['element']:
             for contained in elemmap_0[el]['element']['contains']:
-                print("ALSO REMOVING {}".format(contained['id']))
                 rm_elems.add(contained['id'])
 
     changed = set()
