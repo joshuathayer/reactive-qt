@@ -102,7 +102,7 @@ def elem_map(container):
 #   overall layout
 # - was_reordered is the list of elements we've found which were
 #   reordered in the container- this always starts empty and is added
-#   to as those elements are found during our recursive calls.
+#   to as those elements are found during our recursion
 # - container is the element ID of the container which holds all these
 #   elements
 def find_reordered(l0, l1, new, rmd, moved,
@@ -110,7 +110,6 @@ def find_reordered(l0, l1, new, rmd, moved,
 
     # new or moved-into?
     if len(l1) > 0 and (l1[l1ix] in new or l1[l1ix] in moved):
-
         if l1[l1ix] in new:
             yield ['add', l1[l1ix], l1ix, container]
 
@@ -176,7 +175,7 @@ def find_reordered(l0, l1, new, rmd, moved,
                                   l1ix,
                                   was_reordered, container)
 
-    # anything else and it's something that was reordered
+    # anything else means it's something that was reordered
     elif len(l0) > 0 and len(l1) > 0:
 
         yield ['reorder', l1[l1ix], l1ix, container]
@@ -312,7 +311,7 @@ def compare_layouts(l0, l1, element_map):
             moved.add(e0['element']['id'])
 
     # if any removed elements are containers, their contained elements
-    # must also be removed (though if we moved an element from a
+    # must also be removed (though if we moved an element away from a
     # container that was being removed, we don't delete it)
     for el in rm_elems:
         if 'contains' in elemmap_0[el]['element']:
@@ -323,7 +322,8 @@ def compare_layouts(l0, l1, element_map):
     all_elems = merge(elemmap_0, elemmap_1)
 
     containers = filter(lambda x: 'contains'
-                        in all_elems[x]['element'], set(all_elems.keys()))
+                        in all_elems[x]['element'],
+                        set(all_elems.keys()))
 
     ret.elemmap_0 = elemmap_0
     ret.elemmap_1 = elemmap_1
@@ -339,63 +339,48 @@ def compare_layouts(l0, l1, element_map):
 
 # l0 is the layout we're moving _from_
 # l1 is the layout we're moving _to_
-
 def render_diff(l0, l1, element_map):
     cl  = compare_layouts(l0, l1, element_map)
+
     render_diff_inner(l0, l1, cl)
-
-def render_diff_inner(l0, l1, cl):
-
-    element_map = cl.element_map
-
-    actions = find_reordered(list(map(lambda x: x['id'],
-                                      l0['contains'])),
-                             list(map(lambda x: x['id'],
-                                      l1['contains'])),
-                             cl.new_elems, cl.rm_elems,
-                             cl.moved, 0, 0, set(), l0['id'])
-
-    def do_action(the_actions, em0, em1):
-
-        if the_actions is None:
-            return
-
-        for a in the_actions:
-            take_action(a[0], a[1:], cl.element_map)
-
-        all_elems = merge(em0, em1)
-
-        for cid in cl.containers:
-
-            e0 = []
-            if cid in em0:
-                e0 = list(map(lambda x: x['id'],
-                              em0[cid]['element']['contains']))
-
-            e1 = []
-            if cid in em1:
-                e1 = list(map(lambda x: x['id'],
-                              em1[cid]['element']['contains']))
-
-            e0_dict = {el_id: all_elems[el_id] for el_id in e0}
-            e1_dict = {el_id: all_elems[el_id] for el_id in e1}
-
-            new_actions = find_reordered(e0, e1,
-                                         cl.new_elems,
-                                         cl.rm_elems,
-                                         cl.moved,
-                                         0, 0, set(),
-                                         cid)
-
-            do_action(new_actions, e0_dict, e1_dict)
-
-    do_action(actions, cl.elemmap_0, cl.elemmap_1)
 
     for el in cl.rm_elems:
         del cl.element_map[el]
 
     return cl.element_map
 
+def render_diff_inner(l0, l1, cl):
+
+    comp_id = l0.get('id', l1.get('id'))
+
+    contained_l0 = list(map(lambda x: x['id'], l0.get('contains', [])))
+    contained_l1 = list(map(lambda x: x['id'], l1.get('contains', [])))
+
+    actions = find_reordered(contained_l0,
+                             contained_l1,
+                             cl.new_elems, cl.rm_elems,
+                             cl.moved, 0, 0, set(), comp_id)
+
+    if actions is None:
+        return
+
+    for a in actions:
+        take_action(a[0], a[1:], cl.element_map)
+
+    #all_elems = merge(cl.elemmap_0, cl.elemmap_1)
+    #em0 = {el_id: all_elems[el_id] for el_id in contained_l0}
+    #em1 = {el_id: all_elems[el_id] for el_id in contained_l1}
+
+    em0 = {el_id: cl.elemmap_0[el_id] for el_id in contained_l0}
+    em1 = {el_id: cl.elemmap_1[el_id] for el_id in contained_l1}
+
+    for cid in cl.containers:
+        l0 = em0.get(cid, {}).get('element', {})
+        l1 = em1.get(cid, {}).get('element', {})
+
+        render_diff_inner(l0, l1, cl)
+
+#####
 
 app = QApplication([])
 window = QWidget()
