@@ -443,8 +443,8 @@ def take_action(action, args, all_elements):
 
 def render_diff(l0, l1, element_map): # should return new element map
     print("l1: {}".format(l1))
-    elemmap_0 = elem_map(l0)
-    elemmap_1 = elem_map(l1)
+    elemmap_0 = elem_map(l0) # native objects
+    elemmap_1 = elem_map(l1) # native objects
     print("elemmap 1 {}".format(elemmap_1))
     print("element map {}".format(element_map))
 
@@ -456,6 +456,15 @@ def render_diff(l0, l1, element_map): # should return new element map
     new_elems = elems_1 - elems_0  # just IDs
     print("new elems {}".format(new_elems))
     rm_elems = elems_0 - elems_1
+
+    # if any removed elements are containers, their contained elements
+    # must also be removed!
+    for el in rm_elems:
+        print("******** {}".format(elemmap_0[el]))
+        if 'contains' in elemmap_0[el]['element']:
+            for contained in elemmap_0[el]['element']['contains']:
+                print("ALSO REMOVING {}".format(contained['id']))
+                rm_elems.add(contained['id'])
 
     changed = set()
     moved = set()
@@ -499,8 +508,6 @@ def render_diff(l0, l1, element_map): # should return new element map
     for cid in containers:
 
         if cid in elemmap_0:
-            # e0 = list(map(lambda x: x['id'],
-            #               elemmap_0[cid]['element']['contains']))
             e0 = list(map(lambda x: x['id'],
                           all_elems[cid]['element']['contains']))
 
