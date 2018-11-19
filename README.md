@@ -2,7 +2,7 @@
 
 _Like react, but for qt_
 
-This project intends to allow declarative PyQt creation and modification.
+This project intends to allow declarative PyQt layout creation and modification.
 
 Layouts are expressed as recursive python dictionaries.
 
