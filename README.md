@@ -36,8 +36,7 @@ We build a simple python data structure which represents the initial state of th
                    'text': 'hello'},
                   {'component': 'label',
                    'id': 1001,
-                   'text': 'world'}]
-                 ]}]
+                   'text': 'world'}]]}]
 
 Then we call `render_diff`, giving the current layout, the next layout, and a dictionary of all known Qt elements. This call will update the Qt UI to make it reflect the new application state, and will return a new value for the dictionary of all known Qt elements.
 
@@ -62,8 +61,7 @@ Now we can make changes to the UI:
                        'text': 'continue'},
                       {'component': 'button',
                        'id': 2002,
-                       'text': 'quit'}]
-                  }]}]
+                       'text': 'quit'}]}]}]
 
     elements = render_diff(layout1, layout2, elements)
 
