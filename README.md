@@ -67,6 +67,8 @@ Now we can make changes to the UI:
 
 The `render_diff` call here calculates a series of mutations required to move the UI `layout1` to `layout2`, and makes those mutations on the Qt UI. In this case, that means reordering elements 1000 and 1001, and adding the new vbox (id 2000) and its subelements.
 
+It's important to note that the application doesn't simply get completely redrawn, which (in a complex UI), would be slow and disruptive to the user. Instead, a minimal number of mutations are made to bring the UI into the state specified by the new layout. For example, if the only chnage between two layouts is an element's `text` attribute changing, then the only action taken by the UI is a single `.setText()`.
+
 See `example.py` for working example.
 
 This is very early work: only a couple of element types are supported, only element movement, creation, and deletion are supported (not modification yet), there are bugs, etc.
