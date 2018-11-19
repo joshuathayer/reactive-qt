@@ -11,122 +11,18 @@ from toolz.dicttoolz import dissoc, merge
 from toolz.itertoolz import get
 from functools import reduce, partial
 
+def input(prompt):
+    [vbox
+     [label {text: db_val('prompt')}]
+     [input {on-submit: ...}]]
 
-# def render0(old, new):
+[vbox
+ [input "what's your name"]]
 
-#     diff = DeepDiff(old, new, view='tree',
-#                     ignore_order=False,
-#                     exclude_types={QObject})
 
-#     if 'iterable_item_added' in diff:
-#         for a in diff['iterable_item_added']:
-#             at = a.up.t2_child_rel.param
-#             item = a.up.t2_child_rel.child
-
-#             if item['element'] == 'label':
-#                 ql = QLabel()
-#                 ql.setText(item['text'])
-#                 vbox.addWidget(ql)
-
-#                 # mutate our local representation of the layout!
-#                 item['_qobj'] = ql
-#                 old.insert(at, item)
-
-#     if 'values_changed' in diff:
-#         for change in diff['values_changed']:
-#             element = change.up.t1['element']
-#             obj = change.up.t1['_qobj']
-#             param = change.up.t1_child_rel.param
-
-#             if element == 'label':
-#                 if param == 'text':
-#                     obj.setText(change.t2)
-
-#     return old
-
-# elements = {}
-# components = {}
-
-# def render(old, new):
-#     diffs = diff(old, new)
-
-#     for d in diffs:
-#         (action, path, item) = d
-#         current_element = elements
-#         if action == 'add':
-
-#             # point into `elements` at the right place...
-#             for e in path:
-#                 if path not in current_element:
-#                     current_element[path] = {}
-#                 current_element = current_element[path]
-
-#             # add the element at the right place...
-#             for (at, content) in item:
-
-#                 # update current representation of the layout
-#                 current_element['id'] = str(uuid.uuid4())
-#                 current_element[at] = item
-
-#         print(d)
-
-#     print("-----")
-
-#     return new
-
-# current_layout = []
-
-# new_layout = [{'element': 'label',
-#                'text': 'hello world'}]
-
-# current_layout = render(current_layout, new_layout)
-
-# new_layout = [{'element': 'label',
-#                'text': 'hello world'},
-#               {'element': 'label',
-#                'text': 'my name is joshua'}]
-
-# current_layout = render(current_layout, new_layout)
-
-# new_layout = [{'element': 'label',
-#                'text': 'hello world'},
-#               {'element': 'label',
-#                'text': 'my name is josh'},
-#               {'element': 'label',
-#                'text': 'i am not feeling so great'}]
-
-# current_layout = render(current_layout, new_layout)
-
-# new_layout = [{'element': 'label',
-#                'text': 'hello world'},
-#               {'element': 'label',
-#                'text': 'my name is josh!!!'},
-#               {'element': 'label',
-#                'text': 'i am not feeling so great'}]
-
-# current_layout = render(current_layout, new_layout)
-
-# # i don't think it's quite that easy. consider...
-
-# layout0  = [{'element': 'label',
-#              'text': 'hello',
-#              'id': 1234}]
-
-# layout1  = [{'element': 'button',
-#              'text': 'submit',
-#              'id': 5678},
-#             {'element': 'label',
-#              'text': 'hello',
-#              'id': 1234}]
-
-# # we clearly just added a new element, 5678. but
-# current_layout = render(layout0, layout1)
-# # shows us _changing_ every attribute of the first element of the
-# # list, then adding an new element, 1234. clearly not what we're
-# # after.
-
-# # will we have to make our own algorithm? it might not be so bad,
-# # especially since we have domain knownledge about our structure
+[vbox {id: 123, color: blue}
+ [label {text: "this is a label"}]
+ [label {text: "this is another label"}]]
 
 layout0  = [{'element': 'button',
              'text': 'submit!!',
@@ -217,17 +113,17 @@ def elem_map(container):
 def find_reordered(l0, l1, new, rmd, moved,
                    l0ix, l1ix, was_reordered, container):
     # print("----vv---")
-    # print("{} {} {}".format(l0, l0ix, l0[l0ix]))
-    # print("{} {} {}".format(l1, l1ix, l1[l1ix]))
-    print("{} {}".format(l0, l0ix))
-    print("{} {}".format(l1, l1ix))
-    print(len(l0))
+    # print("{} {}".format(l0, l0ix))
+    # print("{} {}".format(l1, l1ix))
+    # print("{} {}".format(l0, l0ix))
+    # print("{} {}".format(l1, l1ix))
+    # print(len(l0))
     # print(was_reordered)
     # print("len0 {}".format(len(l0)))
     # print("len1 {}".format(len(l1)))
 
     if len(l1) > 0 and (l1[l1ix] in new or l1[l1ix] in moved):
-        print("SIDE EFFECT ADD/MOVE-IN {} at {} container {}".format(l1[l1ix], l1ix, container))
+        # print("SIDE EFFECT ADD/MOVE-IN {} at {} container {}".format(l1[l1ix], l1ix, container))
 
         if l1[l1ix] in new:
             yield ['add', l1[l1ix], l1ix, container]
@@ -263,7 +159,7 @@ def find_reordered(l0, l1, new, rmd, moved,
     elif len(l0) > 0 and l0[l0ix] in was_reordered:
         # we've come across something in original list that we already
         # detected was moved. advance over it.
-        print("Came across already-reordered {}".format(l0[l0ix]))
+        # print("Came across already-reordered {}".format(l0[l0ix]))
         if l0ix >= len(l0) -1 and l1ix >= len(l1) - 1:
             return
         yield from find_reordered(l0, l1,
@@ -297,8 +193,8 @@ def find_reordered(l0, l1, new, rmd, moved,
 
     elif len(l0) > 0 and len(l1) > 0:
         # a reordering in our container
-        print("REORDERING SIDE EFFECT REMOVE {}".format(l1[l1ix]))
-        print("REORDERING SIDE EFFECT ADD {} at index {} container {}".format(l1[l1ix], l1ix, container))
+        # print("REORDERING SIDE EFFECT REMOVE {}".format(l1[l1ix]))
+        # print("REORDERING SIDE EFFECT ADD {} at index {} container {}".format(l1[l1ix], l1ix, container))
 
         yield ['reorder', l1[l1ix], l1ix, container]
 
@@ -316,65 +212,9 @@ def find_reordered(l0, l1, new, rmd, moved,
                                   was_reordered, container)
 
 
-# print()
-# print("Equivalent lists")
-# find_reordered([1, 2, 3, 4], [1, 2, 3, 4], set(), set(), set(), 0, 0, set(), 0)
-
-# print()
-# print("Simple reorder")
-# for x in find_reordered([1, 2, 3, 4], [1, 3, 2, 4], set(), set(), set(), 0, 0, set(), 0):
-#     print(x)
-
-# print()
-# print("Simple reorder at tail")
-# find_reordered([1, 2, 3, 4], [1, 2, 4, 3], set(), set(), set(), 0, 0, set(), 0)
-
-# print()
-# print("Double reorder")
-# find_reordered([1, 2, 3, 4, 5, 6], [1, 3, 2, 4, 6, 5], set(), set(), set(), 0, 0, set(), 0)
-
-# print()
-# print("Added element 5 in middle")
-# find_reordered([1, 2, 3, 4], [1, 2, 5, 3, 4],
-#                set([5]), set(), set(), 0, 0, set(), 0)
-
-# print()
-# print("Added element 5 at end")
-# find_reordered([1, 2, 3, 4], [1, 2, 3, 4, 5],
-#                set([5]), set(), set(), 0, 0, set(), 0)
-
-# print()
-# print("Removed element 5 at end")
-# find_reordered([1, 2, 3, 4, 5], [1, 2, 3, 4],
-#                set(), set([5]), set(), 0, 0, set(), 0)
-
-# print()
-# print("Removed element")
-# find_reordered([1, 2, 3, 4], [1, 2, 4],
-#                set(), set([3]), set(), 0, 0, set(), 0)
-
-# print()
-# print("Moved element in")
-# find_reordered([1, 2, 3, 4], [1, 2, 5, 3, 4],
-#                set(), set(), set([5]), 0, 0, set(), 0)
-
-# print()
-# print("Moved element out")
-# find_reordered([1, 2, 5, 3, 4], [1, 2, 3, 4],
-#                set(), set(), set([5]), 0, 0, set(), 0)
-
-
-# print()
-# print("Add element, reorder later ones")
-# for x in find_reordered([1, 2, 3, 4], [1, 2, 5, 4, 3],
-#                         set([5]), set(), set(), 0, 0, set(), 0):
-#     print(x)
-
-
 
 def instantiate_new_elements(new_elements, element_map):
     for el in new_elements:
-        print(el['element']['element'])
         if el['element']['element'] == 'label':
             ob = QLabel()
             ob.setText(el['element']['text'])
@@ -442,11 +282,10 @@ def take_action(action, args, all_elements):
 
 
 def render_diff(l0, l1, element_map): # should return new element map
-    print("l1: {}".format(l1))
     elemmap_0 = elem_map(l0) # native objects
     elemmap_1 = elem_map(l1) # native objects
-    print("elemmap 1 {}".format(elemmap_1))
-    print("element map {}".format(element_map))
+    # print("elemmap 1 {}".format(elemmap_1))
+    # print("element map {}".format(element_map))
 
     elems_0 = set(elemmap_0.keys())
     elems_1 = set(elemmap_1.keys())
@@ -460,7 +299,6 @@ def render_diff(l0, l1, element_map): # should return new element map
     # if any removed elements are containers, their contained elements
     # must also be removed!
     for el in rm_elems:
-        print("******** {}".format(elemmap_0[el]))
         if 'contains' in elemmap_0[el]['element']:
             for contained in elemmap_0[el]['element']['contains']:
                 print("ALSO REMOVING {}".format(contained['id']))
@@ -471,10 +309,8 @@ def render_diff(l0, l1, element_map): # should return new element map
     reordered = set()
 
     new_element_objs = list(map(lambda x: elemmap_1[x], new_elems))
-    print("new obs {}".format(new_element_objs))
     element_map = instantiate_new_elements(new_element_objs,
                                            element_map)
-    print("element map after {}".format(element_map))
 
     for e0, e1 in zip(map(lambda x: get(x, elemmap_0), common),
                       map(lambda x: get(x, elemmap_1), common)):
@@ -483,10 +319,10 @@ def render_diff(l0, l1, element_map): # should return new element map
         if e0['container'] != e1['container']:
             moved.add(e0['element']['id'])
 
-    print("new elements: {}".format(new_elems))
-    print("rm elements: {}".format(rm_elems))
-    print("changed element: {}".format(changed))
-    print("moved element: {}".format(moved))
+    # print("new elements: {}".format(new_elems))
+    # print("rm elements: {}".format(rm_elems))
+    # print("changed element: {}".format(changed))
+    # print("moved element: {}".format(moved))
 
     actions = find_reordered(list(map(lambda x: x['id'], l0['contains'])),
                              list(map(lambda x: x['id'], l1['contains'])),
@@ -501,35 +337,55 @@ def render_diff(l0, l1, element_map): # should return new element map
     containers = filter(lambda x: 'contains'
                         in all_elems[x]['element'], set(all_elems.keys()))
 
-    for a in actions:
-        print(a)
-        take_action(a[0], a[1:], element_map)
+    def do_action(the_actions, em0, em1):
+        if the_actions is None:
+            return
 
-    for cid in containers:
-
-        if cid in elemmap_0:
-            e0 = list(map(lambda x: x['id'],
-                          all_elems[cid]['element']['contains']))
-
-        else:
-            e0 = []
-
-        contained = list(map(lambda x: x['id'],
-                             all_elems[cid]['element']['contains']))
-        print("CONTAINED {}".format(contained))
-
-        actions = find_reordered(e0,
-                                 contained,
-                                 new_elems,
-                                 rm_elems,
-                                 moved,
-                                 0,
-                                 0,
-                                 set(),
-                                 cid)
-        for a in actions:
+        for a in the_actions:
             print(a)
             take_action(a[0], a[1:], element_map)
+
+        print("in do action, em0 is {}".format(em0))
+        print("in do action, em1 is {}".format(em1))
+        all_elems = merge(em0, em1)
+
+        containers = filter(lambda x: 'contains'
+                            in all_elems[x]['element'], set(all_elems.keys()))
+
+        for cid in containers:
+
+            if cid in em0:
+                e0 = list(map(lambda x: x['id'],
+                              em0[cid]['element']['contains']))
+
+            else:
+                e0 = []
+
+            e1 = list(map(lambda x: x['id'],
+                          em1[cid]['element']['contains']))
+
+            print("RECURSE CONTAINED 0 {}".format(e0))
+            print("RECURSE CONTAINED 1 {}".format(e1))
+
+            e1_dict = {}
+            e0_dict = {}
+            for el_id in e0:
+                e0_dict[el_id] = all_elems[el_id]
+            for el_id in e1:
+                e1_dict[el_id] = all_elems[el_id]
+
+            new_actions = find_reordered(e0,
+                                         e1,
+                                         new_elems,
+                                         rm_elems,
+                                         moved,
+                                         0,
+                                         0,
+                                         set(),
+                                         cid)
+            do_action(new_actions, e0_dict, e1_dict)
+
+    do_action(actions, elemmap_0, elemmap_1)
 
     for el in rm_elems:
         del element_map[el]
@@ -585,3 +441,58 @@ render_diff({'contains': [], 'id': 0},
 appwindow.setLayout(vbox)
 appwindow.show()
 app.exec_()
+
+
+# print()
+# print("Equivalent lists")
+# find_reordered([1, 2, 3, 4], [1, 2, 3, 4], set(), set(), set(), 0, 0, set(), 0)
+
+# print()
+# print("Simple reorder")
+# for x in find_reordered([1, 2, 3, 4], [1, 3, 2, 4], set(), set(), set(), 0, 0, set(), 0):
+#     print(x)
+
+# print()
+# print("Simple reorder at tail")
+# find_reordered([1, 2, 3, 4], [1, 2, 4, 3], set(), set(), set(), 0, 0, set(), 0)
+
+# print()
+# print("Double reorder")
+# find_reordered([1, 2, 3, 4, 5, 6], [1, 3, 2, 4, 6, 5], set(), set(), set(), 0, 0, set(), 0)
+
+# print()
+# print("Added element 5 in middle")
+# find_reordered([1, 2, 3, 4], [1, 2, 5, 3, 4],
+#                set([5]), set(), set(), 0, 0, set(), 0)
+
+# print()
+# print("Added element 5 at end")
+# find_reordered([1, 2, 3, 4], [1, 2, 3, 4, 5],
+#                set([5]), set(), set(), 0, 0, set(), 0)
+
+# print()
+# print("Removed element 5 at end")
+# find_reordered([1, 2, 3, 4, 5], [1, 2, 3, 4],
+#                set(), set([5]), set(), 0, 0, set(), 0)
+
+# print()
+# print("Removed element")
+# find_reordered([1, 2, 3, 4], [1, 2, 4],
+#                set(), set([3]), set(), 0, 0, set(), 0)
+
+# print()
+# print("Moved element in")
+# find_reordered([1, 2, 3, 4], [1, 2, 5, 3, 4],
+#                set(), set(), set([5]), 0, 0, set(), 0)
+
+# print()
+# print("Moved element out")
+# find_reordered([1, 2, 5, 3, 4], [1, 2, 3, 4],
+#                set(), set(), set([5]), 0, 0, set(), 0)
+
+
+# print()
+# print("Add element, reorder later ones")
+# for x in find_reordered([1, 2, 3, 4], [1, 2, 5, 4, 3],
+#                         set([5]), set(), set(), 0, 0, set(), 0):
+#     print(x)
