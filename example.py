@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout
 from PyQt5.QtCore import Qt
 
-from experiments import render_diff
+from reactive_qt.core import render_diff
 
 layout0 = []
 
@@ -105,11 +105,6 @@ window = QWidget()
 vbox = QVBoxLayout()
 
 appwindow = AppWindow([layout0, layout1, layout2], {0: vbox})
-
-# this mutates the vbox
-render_diff({'contains': [], 'id': 0},
-            {'contains': [], 'id': 0},
-            {0: vbox})
 
 appwindow.setLayout(vbox)
 appwindow.show()
