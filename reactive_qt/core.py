@@ -242,7 +242,7 @@ def compare_layouts(l0, l1, element_map):
         list(map(lambda x: elemmap_1[x], new_elems)),
         element_map)
 
-    changed = set()
+    changed = dict()
     moved = set()
     reordered = set()
 
@@ -254,7 +254,7 @@ def compare_layouts(l0, l1, element_map):
     for e0, e1 in zip(map(lambda x: get(x, elemmap_0), common),
                       map(lambda x: get(x, elemmap_1), common)):
         if e0['element'] != e1['element']:
-            changed.add(e0['element']['id'])
+            changed[e1['element']['id']] = e1['element']
         if e0['container'] != e1['container']:
             moved.add(e0['element']['id'])
 
@@ -288,13 +288,17 @@ def compare_layouts(l0, l1, element_map):
 # l0 is the layout we're moving _from_
 # l1 is the layout we're moving _to_
 def render_diff(l0, l1, element_map):
-    print("Rendering...")
     cl  = compare_layouts(l0, l1, element_map)
 
     render_diff_inner(l0, l1, cl)
 
     for el in cl.rm_elems:
         del cl.element_map[el]
+
+    for elid, elem in cl.changed.items():
+        qelem = cl.element_map[elid]
+        print("changed!", elid, elem, qelem)
+        qelem.setText(elem['text'])
 
     return cl.element_map
 
@@ -315,10 +319,6 @@ def render_diff_inner(l0, l1, cl):
 
     for a in actions:
         take_action(a[0], a[1:], cl.element_map)
-
-    #all_elems = merge(cl.elemmap_0, cl.elemmap_1)
-    #em0 = {el_id: all_elems[el_id] for el_id in contained_l0}
-    #em1 = {el_id: all_elems[el_id] for el_id in contained_l1}
 
     em0 = {el_id: cl.elemmap_0[el_id] for el_id in contained_l0}
     em1 = {el_id: cl.elemmap_1[el_id] for el_id in contained_l1}
