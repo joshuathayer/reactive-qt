@@ -1,11 +1,11 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, \
-    QVBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, \
-    QLayout
+    QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, \
+    QLayout, QLineEdit
 from PyQt5.QtCore import QObject
 import PyQt5.QtGui
 from PyQt5.QtCore import Qt
 import uuid
-from toolz.dicttoolz import dissoc, merge
+from toolz.dicttoolz import dissoc, merge, get_in
 from toolz.itertoolz import get
 from functools import reduce, partial
 import collections
@@ -149,12 +149,18 @@ def instantiate_new_elements(new_elements, element_map):
             ob = QLabel()
             ob.setText(e['text'])
             element_map[e['id']] = ob
-        elif comp == 'button':
-            ob = QPushButton()
-            ob.setText(e['text'])
-            element_map[e['id']] = ob
         elif comp == 'vbox':
             ob = QVBoxLayout()
+            element_map[e['id']] = ob
+        elif comp == 'hbox':
+            ob = QHBoxLayout()
+            element_map[e['id']] = ob
+        elif comp == 'lineedit':
+            ob = QLineEdit()
+            element_map[e['id']] = ob
+        elif comp == 'pushbutton':
+            ob = QPushButton()
+            ob.setText(e['text'])
             element_map[e['id']] = ob
 
     return element_map
@@ -287,6 +293,7 @@ def compare_layouts(l0, l1, element_map):
 
 # l0 is the layout we're moving _from_
 # l1 is the layout we're moving _to_
+# layouts are a component with an id, and (possibly) a `contains` list
 def render_diff(l0, l1, element_map):
     cl  = compare_layouts(l0, l1, element_map)
 
@@ -303,7 +310,6 @@ def render_diff(l0, l1, element_map):
     return cl.element_map
 
 def render_diff_inner(l0, l1, cl):
-
     comp_id = l0.get('id', l1.get('id'))
 
     contained_l0 = list(map(lambda x: x['id'], l0.get('contains', [])))
@@ -323,11 +329,11 @@ def render_diff_inner(l0, l1, cl):
     em0 = {el_id: cl.elemmap_0[el_id] for el_id in contained_l0}
     em1 = {el_id: cl.elemmap_1[el_id] for el_id in contained_l1}
 
-    for cid in cl.containers:
-        l0 = em0.get(cid, {}).get('element', {})
-        l1 = em1.get(cid, {}).get('element', {})
+    for cid in set(em0.keys()).union(em1.keys()):
 
-        render_diff_inner(l0, l1, cl)
+        render_diff_inner(get_in([cid, 'element'], em0, {}),
+                          get_in([cid, 'element'], em1, {}),
+                          cl)
 
 #####
 
