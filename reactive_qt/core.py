@@ -158,10 +158,15 @@ def instantiate_new_elements(new_elements, element_map):
         elif comp == 'lineedit':
             ob = QLineEdit()
             element_map[e['id']] = ob
+            if 'on-edit' in e:
+                ob.textEdited.connect(e['on-edit'])
+            ob.setText(e['text'])
         elif comp == 'pushbutton':
             ob = QPushButton()
             ob.setText(e['text'])
             element_map[e['id']] = ob
+            if 'on-click' in e:
+                ob.clicked.connect(e['on-click'])
 
     return element_map
 
@@ -253,14 +258,17 @@ def compare_layouts(l0, l1, element_map):
     reordered = set()
 
     # detect those elements were retained in both layouts. for each,
-    # if their contents differ, we add them to the list of changed
-    # elements (XXX this should compare elements without their
-    # `contains` attributes). If the element is contained by
-    # different element, we add to the list of moved elements.
+    # if their contents differ (but importantly, not their `contains`
+    # list), we add them to the list of changed elements If the
+    # element is contained by different element, we add to the list of
+    # moved elements.
     for e0, e1 in zip(map(lambda x: get(x, elemmap_0), common),
                       map(lambda x: get(x, elemmap_1), common)):
-        if e0['element'] != e1['element']:
+
+        if dissoc(e0['element'], 'contains') != \
+           dissoc(e1['element'], 'contains'):
             changed[e1['element']['id']] = e1['element']
+
         if e0['container'] != e1['container']:
             moved.add(e0['element']['id'])
 
